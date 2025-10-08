@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Falcon Tools — Landing Page</title>
+  <style>
+    :root {
+      --accent: #0b6efd;
+      --bg: #f3f6fb;
+      --card-bg: #ffffff;
+      --shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    body {
+      margin:0;
+      font-family: "Inter", sans-serif;
+      background: var(--bg);
+      color:#1f2937;
+    }
+    header {
+      background:white;
+      padding:16px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow: var(--shadow);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .brand img {
+      height:50px;
+    }
+    .brand-name {
+      font-size:20px;
+      font-weight:700;
+      color: var(--accent);
+    }
+    .tagline {
+      font-size:13px;
+      color:#666;
+    }
+    main {
+      padding:40px 20px;
+      max-width:1200px;
+      margin:auto;
+    }
+    h1 {
+      font-size:26px;
+      text-align:center;
+      margin-bottom:30px;
+    }
+    .tools-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(250px,1fr));
+      gap:20px;
+    }
+    .tool-card {
+      background:var(--card-bg);
+      border-radius:12px;
+      padding:20px;
+      box-shadow: var(--shadow);
+      transition:transform .2s ease, box-shadow .2s ease;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .tool-card:hover {
+      transform:translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .tool-card h3 {
+      margin:0 0 10px 0;
+      color:var(--accent);
+    }
+    .tool-card p {
+      font-size:14px;
+      color:#555;
+      flex-grow:1;
+    }
+    .btn {
+      margin-top:15px;
+      display:inline-block;
+      padding:10px 14px;
+      background:var(--accent);
+      color:white;
+      text-align:center;
+      border-radius:8px;
+      text-decoration:none;
+      font-size:14px;
+      font-weight:600;
+    }
+    footer {
+      margin-top:40px;
+      text-align:center;
+      font-size:13px;
+      color:#888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="Logo.png" alt="Falcon Logo">
+      <div>
+        <div class="brand-name">Falcon</div>
+        <div class="tagline">Faster than Fastest</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <h1>Welcome to Falcon Tools</h1>
+    <div class="tools-grid">
+      <!-- Tool Card 1 -->
+      <div class="tool-card">
+        <h3>Rate-List Falcon</h3>
+        <p>Create, edit, and print transport quotations with dynamic rates.</p>
+        <a href="rates_form.html" class="btn">Open Tool</a>
+      </div>
+
+      <div class="tool-card">
+        <h3>Rate-List Hotel&taxi</h3>
+        <p>Create, edit, and print transport quotations with dynamic rates.</p>
+        <a href="rates__form.html" class="btn">Open Tool</a>
+      </div>
+
+
+      <!-- Tool Card 2 (placeholder) -->
+      <!-- <div class="tool-card">
+        <h3>Invoice Generator</h3>
+        <p>Generate professional invoices quickly with auto-calculations.</p>
+        <a href="#" class="btn">Coming Soon</a>
+      </div> -->
+
+      <!-- Tool Card 3 (placeholder) -->
+      <!-- <div class="tool-card">
+        <h3>Itinerary Builder</h3>
+        <p>Design attractive tour itineraries with costing and details.</p>
+        <a href="#" class="btn">Coming Soon</a>
+      </div> -->
+    </div>
+  </main>
+
+  <footer>
+    © 2025 Falcon — Faster than Fastest. All rights reserved.
+  </footer>
+</body>
+</html>

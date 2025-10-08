@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Quotation — Rates Entry (Dynamic Page 1)</title>
+    <style>
+      :root {
+        --card-bg: #ffffff;
+        --muted: #666;
+        --accent: #0b6efd;
+        --shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+      }
+      body { background:#f3f6fb; margin:0; padding:28px; color:#1f2937; }
+      .container { max-width:1100px; margin:0 auto; }
+      header.card, .card { background:var(--card-bg); padding:20px; border-radius:10px; box-shadow:var(--shadow); margin-bottom:18px; }
+      .brand { font-weight:700; font-size:20px; line-height:1; }
+      .sub { color:var(--muted); font-size:13px; }
+      form .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+      label { font-size:13px; display:block; margin-bottom:6px; color:#374151; }
+      input[type="text"], input[type="date"], input[type="number"] { width:100%; padding:8px 10px; font-size:14px; border-radius:6px; border:1px solid #e6e9ef; box-sizing:border-box; }
+      .table-wrapper { overflow-x:auto; margin-top:12px; -webkit-overflow-scrolling:touch; }
+      table { border-collapse:collapse; min-width:800px; }
+      th, td { padding:8px 10px; border:1px solid #eef2f6; text-align:left; vertical-align:middle; }
+      th { background:#fbfdff; position:relative; }
+      .input-rupee { display:flex; align-items:center; }
+      .rupee { margin-right:6px; min-width:20px; text-align:right; }
+      .btns { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+      /* Freeze first column */
+.vehicle-table th:first-child,
+.vehicle-table td:first-child,
+.preview-table th:first-child,
+.preview-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--card-bg);
+  z-index: 2; /* ensures it stays above other cells */
+  box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); /* optional shadow */
+}
+      button.btn { background:var(--accent); color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; flex:1 1 auto; min-width:140px; }
+      button.ghost { background:transparent; color:var(--accent); border:1px solid #dbe7ff; }
+      button.secondary { background:#10b981; }
+      button.danger { background:#ef4444; }
+      .muted-note { color:var(--muted); font-size:13px; margin-top:8px; line-height:1.5; }
+      .preview { margin-top:12px; overflow:auto; }
+      .preview-table { width:100%; border-collapse:collapse; font-size:14px; min-width:800px; }
+      .preview-table th, .preview-table td { border:1px solid #e6edf5; padding:8px 10px; text-align:left; }
+      .editable { background:#f0f4ff; border-radius:4px; padding:2px 4px; cursor:text; }
+      .delete-btn { cursor:pointer; color:red; font-weight:bold; margin-left:4px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="card">
+        <div>
+          <div class="brand">Falcon — Faster Than Fastest</div>
+          <div class="sub">Logistic Services — Udaipur</div>
+        </div>
+        <div style="margin-left:auto; text-align:right">
+          <div class="sub">Contact: +91 9829264423</div>
+          <div class="sub">mail@falconcabsindia.com</div>
+        </div>
+      </header>
+
+      <section class="card">
+        <h3 style="margin:0 0 10px 0">Page 1 — Rates Entry (Dynamic)</h3>
+        <form id="ratesForm">
+          <div class="grid">
+            <div>
+              <label for="eventDate">Event Date</label>
+              <input id="eventDate" type="date" />
+            </div>
+            <div>
+              <label for="hotelName">Hotel / Venue</label>
+              <input id="hotelName" type="text" placeholder="e.g., Fateh Garh & Vilas"/>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>Vehicle / Item Rates (Dynamic Table)</label>
+            <div style="margin-bottom:8px;">
+              <button type="button" class="btn secondary" id="addRowBtn">+ Add Vehicle</button>
+              <button type="button" class="btn secondary" id="addColBtn">+ Add Duty</button>
+            </div>
+            <div class="table-wrapper">
+              <table class="vehicle-table" id="dynamicTable">
+                <thead>
+                  <tr id="tableHeader">
+                    <th>Particulars</th>
+                    <th>Airport Transfer</th>
+                    <th>Railway Transfers</th>
+                    <th>12 Hrs / 120 Kms</th>
+                    <th>Per Hour Extra</th>
+                    <th>Extra Kms</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody">
+                  <!-- Default vehicle rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="btns" style="margin-top:10px">
+            <button type="button" class="btn" id="generateBtn">Generate Quotation →</button>
+            <button type="button" class="btn secondary" id="resetDefaultsBtn">Reset Defaults</button>
+          </div>
+          <div class="muted-note">
+            Data is saved to session and will be lost when the browser tab/window is closed.
+          </div>
+        </form>
+      </section>
+
+      <section class="card preview" aria-live="polite">
+        <h4 style="margin-top:0">Live Preview</h4>
+        <div class="table-wrapper">
+          <table class="preview-table" id="previewTable">
+            <thead>
+              <tr id="previewHeader"></tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "quotationData";
+      let tableData = {
+        headers: ["Particulars","Airport Transfer","Railway Transfers","12 Hrs / 120 Kms","Per Hour Extra","Extra Kms"],
+        rows: [
+          { label:"Sedan – Dzire / Etios", values:[1250,800,3300,300,14] },
+          { label:"Toyota Crysta", values:[1900,1400,4600,400,20] },
+          { label:"Urbania – New Model", values:[4600,3200,12000,800,40] },
+          { label:"27 Str Coach", values:[5500,5250,null,1000,50] },
+          { label:"35 Str Coach", values:[8000,5800,null,1300,75] },
+          { label:"45 Str Coach", values:[8500,6300,null,1500,80] }
+        ]
+      };
+
+      const tableBody = document.getElementById("tableBody");
+      const tableHeader = document.getElementById("tableHeader");
+
+      function buildTable() {
+        // Build header
+        tableHeader.innerHTML = "";
+        tableData.headers.forEach((h,i)=>{
+          const th = document.createElement("th");
+          th.contentEditable = i>0; // first column label not editable? you can allow
+          th.className = "editable";
+          th.innerText = h;
+          // add delete button for column except first
+          if(i>0){
+            const del = document.createElement("span");
+            del.innerText = "✖";
+            del.className = "delete-btn";
+            del.addEventListener("click", ()=>{ deleteColumn(i); });
+            th.appendChild(del);
+          }
+          tableHeader.appendChild(th);
+        });
+
+        // Build rows
+tableBody.innerHTML = "";
+tableData.rows.forEach((r,rowIndex)=>{
+  const tr = document.createElement("tr");
+  // First column: label
+  const tdLabel = document.createElement("td");
+  tdLabel.contentEditable = true;
+  tdLabel.className = "editable";
+  tdLabel.innerText = r.label;
+  tdLabel.addEventListener("input", ()=>{ 
+    tableData.rows[rowIndex].label = tdLabel.innerText; 
+    updatePreview(); 
+    saveSession(); 
+  });
+  tr.appendChild(tdLabel);
+
+  // Numeric cells
+  r.values.forEach((v,colIndex)=>{
+    const td = document.createElement("td");
+    const input = document.createElement("input");
+    input.type="number";
+    input.min=0;
+    input.value = v===null?"":v;
+    input.addEventListener("input", ()=>{
+      tableData.rows[rowIndex].values[colIndex] = input.value ? Number(input.value) : null;
+      updatePreview();
+      saveSession();
+    });
+    td.appendChild(input);
+    tr.appendChild(td);
+  });
+
+          // delete row button
+          const delTd = document.createElement("td");
+          const delBtn = document.createElement("span");
+          delBtn.className = "delete-btn";
+          delBtn.innerText = "✖";
+          delBtn.addEventListener("click", ()=>{ deleteRow(rowIndex); });
+          delTd.appendChild(delBtn);
+          tr.appendChild(delTd);
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function updatePreview(){
+        const previewHeader = document.getElementById("previewHeader");
+        const previewBody = document.getElementById("previewBody");
+        previewHeader.innerHTML = "";
+        tableData.headers.forEach(h=>{
+          const th = document.createElement("th");
+          th.innerText = h;
+          previewHeader.appendChild(th);
+        });
+        previewBody.innerHTML="";
+        tableData.rows.forEach(r=>{
+          const tr = document.createElement("tr");
+          tr.appendChild(tdText(r.label));
+          r.values.forEach(v=>{
+            tr.appendChild(tdText(v===null?"-":"₹ "+v));
+          });
+          previewBody.appendChild(tr);
+        });
+      }
+
+      function tdText(txt){
+        const td=document.createElement("td");
+        td.innerText=txt;
+        return td;
+      }
+
+      function addRow(){
+        tableData.rows.push({label:"New Item", values:Array(tableData.headers.length-1).fill(null)});
+        buildTable();
+        updatePreview();
+        saveSession();
+      }
+
+      function addColumn(){
+        const colName = prompt("Enter column name:");
+        if(!colName) return;
+        tableData.headers.push(colName);
+        tableData.rows.forEach(r=>r.values.push(null));
+        buildTable();
+        updatePreview();
+        saveSession();
+      }
+
+      function deleteRow(index){
+        if(confirm("Delete this row?")) {
+          tableData.rows.splice(index,1);
+          buildTable();
+          updatePreview();
+          saveSession();
+        }
+      }
+
+      function deleteColumn(index){
+        if(confirm("Delete this column?")) {
+          tableData.headers.splice(index,1);
+          tableData.rows.forEach(r=>r.values.splice(index-1,1));
+          buildTable();
+          updatePreview();
+          saveSession();
+        }
+      }
+
+      function saveSession(){
+        
+        const eventDate = document.getElementById("eventDate").value;
+        const hotelName = document.getElementById("hotelName").value;
+        const saveObj = { eventDate, hotelName, vehicles: tableData.rows.map(r=>({label:r.label, values:r.values})) };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saveObj));
+        sessionStorage.setItem("tableHeaders", JSON.stringify(tableData.headers.slice(1)));
+      }
+
+      document.getElementById("addRowBtn").addEventListener("click", addRow);
+      document.getElementById("addColBtn").addEventListener("click", addColumn);
+      document.getElementById("generateBtn").addEventListener("click", ()=>{
+    saveSession();
+    window.location.href = "quotation.html"; // replace with your actual page 2 filename
+});
+      document.getElementById("resetDefaultsBtn").addEventListener("click", ()=>{
+        if(confirm("Reset to default vehicles and columns?")){
+          tableData = {
+            headers: ["Particulars","Airport Transfer","Railway Transfers","12 Hrs / 120 Kms","Per Hour Extra","Extra Kms"],
+            rows: [
+              { label:"Sedan – Dzire / Etios", values:[1250,800,3300,300,14] },
+              { label:"Toyota Crysta", values:[1900,1400,4600,400,20] },
+              { label:"Urbania – New Model", values:[4600,3200,12000,800,40] },
+              { label:"27 Str Coach", values:[5500,5250,null,1000,50] },
+              { label:"35 Str Coach", values:[8000,5800,null,1300,75] },
+              { label:"45 Str Coach", values:[8500,6300,null,1500,80] }
+            ]
+          };
+          buildTable(); updatePreview(); saveSession();
+        }
+      });
+
+      // On load
+      buildTable();
+      updatePreview();
+    </script>
+  </body>
+</html>

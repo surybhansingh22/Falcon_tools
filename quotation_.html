@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quotation — Final Output (Page 2)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background:#f9f9f9;
+      color:rgb(255, 81, 0); /* All text in red */
+    }
+    .quotation {
+      background:white;
+      padding:24px;
+      max-width:1000px;
+      margin:auto;
+      border:1px solid #ddd;
+      color:rgb(255, 81, 0);
+    }
+    header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+    header img {
+      max-height:80px;
+    }
+    header .info {
+      flex:1;
+      text-align:center;
+    }
+    header h1 { margin:0; font-size:22px; }
+    header p { margin:4px 0; font-size:14px; }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:16px;
+    }
+    table, th, td {
+      border:1px solid rgb(255, 81, 0);
+    }
+    th, td {
+      padding:8px;
+      font-size:14px;
+      text-align:center;
+    }
+    th { background:#ffeaea; } 
+    .terms {
+      font-size:13px;
+      margin-top:20px;
+      line-height:1.4;
+    }
+    .footer {
+      margin-top:20px;
+      font-size:14px;
+    }
+    .btn-print {
+      display:inline-block;
+      margin:20px auto;
+      background:rgb(255, 81, 0);
+      color:white;
+      padding:10px 15px;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+    }
+    @media print {
+      .btn-print { display:none; }
+      body { background:white; }
+      .quotation { border:none; padding:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="quotation" id="quotationBox">
+    <header>
+      <img src="Logo2.jpg" alt="Company Logo">
+      <div class="info">
+        <h1>HotelandTaxi.com</h1>
+        <p>“Bada Ramdwara” Hanuman Ghat O/s Chandpole, Udaipur – 313001</p>
+        <p>Contact: +91 9829264423, +91 8094927274</p>
+        <p>Web: www.hotelandtaxi.com</p>
+        <h2 style="margin-top:15px;">Quotation</h2>
+      </div>
+    </header>
+
+    <div id="eventHotel" style="margin-bottom:15px;font-size:15px;"></div>
+
+    <div class="table-wrapper">
+      <table id="ratesTable">
+        <thead><tr id="tableHead"></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="terms">
+      <b>Terms & Conditions:</b>
+      <ol>
+        <li>Km and Time will be calculated from Garage to Garage.</li>
+        <li>Airport parking charges will be applicable separately for each airport transfer.</li>
+        <li>The above rates do not include parking, toll tax, border tax, and GST (5%) on the bill.</li>
+        <li>The above rates do not include guide charges and monument entrance fees.</li>
+        <li>Increase in fuel price/taxes will be added to our rates.</li>
+        <li>Any duty cancelled within 2 hours of reporting time will be charged in full.</li>
+        <li>Govt. Service Taxes extra as applicable.</li>
+        <li>50% advance payment required.</li>
+        <li>Our representative will be present at arrivals/departures for coordination.</li>
+        <li>Water bottles will be provided in the vehicle.</li>
+        <li>Minimum 12 Hrs / 120 Km per day for Local & 250 Km per day Outstation use.</li>
+        <li>In full-day duty, maximum 2 airport transfers allowed. More = full day duty.</li>
+      </ol>
+    </div>
+
+    <div class="footer" id="footerInfo"></div>
+
+    <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+
+  <script>
+    const dataStr = sessionStorage.getItem("quotationData");
+
+    if(!dataStr){
+      document.getElementById("quotationBox").innerHTML = "<p style='color:red;'>⚠️ No data found. Please go back to Page 1 and enter details.</p>";
+    } else {
+      const data = JSON.parse(dataStr);
+
+      // Event + Hotel info
+      const eventDiv = document.getElementById("eventHotel");
+      let dateStr = data.eventDate ? new Date(data.eventDate).toLocaleDateString() : "";
+      eventDiv.innerHTML = `<b>Event Date:</b> ${dateStr || "-"} &nbsp;&nbsp; | &nbsp;&nbsp; <b>Hotel / Venue:</b> ${data.hotelName || "-"}`;
+
+      // Build table headers
+      const tableHead = document.getElementById("tableHead");
+      tableHead.innerHTML = "";
+      data.vehicles[0] && data.vehicles[0].values.length;
+      data.vehicles.length>0 ? data.vehicles[0].values : [];
+      const headers = ["Particulars", ...Object.keys(data.vehicles[0] ? data.vehicles[0].values.map((_,i)=>i):[])];
+
+      if(data.vehicles.length>0){
+        const thArr = ["Particulars", ...Object.keys(data.vehicles[0].values).map((_,i)=>data.vehicles[0].values[i]?("Duty "+(i+1)):"Duty "+(i+1))];
+        tableHead.innerHTML = "";
+        data.vehicles[0].values.forEach((_,i)=>{
+          // Just placeholder, will be overridden below
+        });
+      }
+
+      // Correct headers from Page1
+      const thFrag = document.createDocumentFragment();
+      data.vehicles && data.vehicles[0] && data.vehicles[0].values.length;
+      // use headers from Page1
+      data.vehicles && data.vehicles.length>0;
+      const colHeaders = ["Particulars"];
+      if(data.vehicles.length>0){
+        const firstRow = data.vehicles[0];
+        colHeaders.push(...data.vehicles.map((v,i)=>v.label));
+      }
+      // Use the headers saved in session
+      const headerRow = data.vehicles && data.vehicles.length>0 ? Object.keys(data.vehicles[0].values) : [];
+      // Better: use headers from sessionStorage
+      const headersSaved = data.vehicles && data.vehicles.length>0 ? null : null;
+
+      tableHead.innerHTML = "";
+      data.vehicles && data.vehicles.length>0;
+      // Finally: just use the data saved in Page1
+      // Use session data headers
+      const th1 = document.createElement("th");
+      th1.innerText = "Particulars";
+      tableHead.appendChild(th1);
+      // Add dynamic headers from Page1
+      const storedHeaders = sessionStorage.getItem("tableHeaders");
+      const headersArr = JSON.parse(storedHeaders || '["Airport Transfer","Railway Transfers","12 Hrs / 120 Kms","Per Hour Extra","Extra Kms"]');
+      headersArr.forEach(h=>{
+        const th = document.createElement("th");
+        th.innerText = h;
+        tableHead.appendChild(th);
+      });
+
+      // Build rows
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML="";
+      data.vehicles.forEach(v=>{
+        const tr = document.createElement("tr");
+        const tdLabel = document.createElement("td");
+        tdLabel.innerText = v.label;
+        tdLabel.style.textAlign = "left";
+        tr.appendChild(tdLabel);
+
+        v.values.forEach(val=>{
+          const td = document.createElement("td");
+          td.innerText = val===null?"-":"₹ "+val;
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      // Footer contact
+      document.getElementById("footerInfo").innerHTML = `
+        <p><b>Contact Person:</b> Bhupendra Singh (+91 9829264423)</p>
+        <p><b>Generated on:</b> ${new Date().toLocaleString()}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
