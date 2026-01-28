@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Preview — Rajasthan Route Cabs</title>
+  <style>
+    :root { --invoice-red: #c41e3a; --invoice-blue: #1e3a8a; --border: 1px solid #333; --border-thick: 2px solid #000; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 14px; background: #f5f5f5; padding: 16px; }
+    .invoice-page { max-width: 900px; margin: 0 auto; background: #fff; padding: 24px; border: var(--border); }
+
+    /* Header: one box, thick border, matches invoice ref */
+    .invoice-header { border: var(--border); margin-bottom: 12px; }
+    .invoice-header .header-company-section { padding: 12px 16px 8px; }
+    .invoice-header .header-company-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .invoice-header .header-company-top .header-spacer { flex: 1; min-width: 0; }
+    .invoice-header .gstin-top-right { font-size: 12px; font-weight: 700; color: var(--invoice-blue); text-align: right; flex: 1; min-width: 0; }
+    .invoice-header .company-name { color: var(--invoice-red); font-size: 22px; font-weight: 700; text-align: center; flex: 0 0 auto; margin: 0; }
+    .invoice-header .company-details { text-align: center; margin-top: 8px; }
+    .invoice-header .company-details p { margin: 2px 0; font-size: 13px; color: var(--invoice-blue); }
+    .invoice-header .header-sep { height: 0; border-top: 1px solid #000; }
+    .invoice-header .header-bottom-section { display: grid; grid-template-columns: 1fr 200px; border-top: 1px solid #000; }
+    .invoice-header .header-customer-col { padding: 10px 12px; border-right: 1px solid #000; }
+    .invoice-header .header-customer-col p { margin: 6px 0; text-align: left; min-height: 1.4em; }
+    .invoice-header .header-customer-col .label { font-weight: 600; }
+    .invoice-header .header-invoice-col { padding: 10px 12px; display: flex; flex-direction: column; justify-content: flex-start; }
+    .invoice-header .header-invoice-col .inv-line { margin: 6px 0; text-align: right; font-size: 13px; min-height: 1.4em; }
+    .invoice-header .header-invoice-col .inv-line:first-child { margin-top: 0; }
+    .two-cols { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
+    .bank-block { border: var(--border); padding: 12px; flex: 1; min-width: 260px; background: #fafafa; }
+    .bank-block h4 { margin: 0 0 8px 0; }
+    .bank-block p { margin: 4px 0; }
+    .amount-words { border: var(--border); padding: 10px; margin-top: 12px; }
+    .amount-words strong { margin-right: 6px; }
+
+    table.preview-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    table.preview-table th, table.preview-table td { border: var(--border); padding: 6px 8px; text-align: left; }
+    table.preview-table th { background: #eee; font-weight: 600; }
+    table.preview-table .num { text-align: right; }
+    .calc-block { border: var(--border); padding: 12px; max-width: 320px; margin-left: auto; margin-top: 12px; }
+    .calc-block .row { display: flex; justify-content: space-between; padding: 4px 0; }
+    .calc-block .grand { font-size: 16px; font-weight: 700; color: var(--invoice-red); margin-top: 8px; padding-top: 8px; border-top: 2px solid #333; }
+    .for-company { color: var(--invoice-red); font-weight: 600; margin-top: 8px; }
+
+    .footer-notes { margin-top: 24px; font-size: 12px; }
+    .footer-notes ol { margin: 4px 0; padding-left: 20px; }
+    .sign-block { text-align: right; margin-top: 24px; }
+    .sign-block .line { border-bottom: 1px solid #333; width: 180px; display: inline-block; margin-bottom: 4px; }
+    .sign-block .label { font-size: 12px; }
+
+    .no-print { margin-top: 20px; display: flex; gap: 12px; align-items: center; }
+    .no-print .btn { padding: 12px 24px; background: var(--invoice-red); color: #fff; border: none; cursor: pointer; font-size: 16px; font-weight: 600; }
+    .no-print .btn:hover { opacity: 0.9; }
+    .no-print .back { color: #0b6efd; text-decoration: none; }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .no-print { display: none !important; }
+      .invoice-page { border: none; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-page" id="invoiceContent">
+    <!-- Populated by JS from localStorage -->
+    <p id="noDataMsg" style="display:none;">No invoice data found. <a href="invoice-form.html">Create an invoice</a> first.</p>
+  </div>
+  <div class="no-print" id="actionsBar" style="display:none;">
+    <a href="invoice-form.html" class="back">← Back to form</a>
+    <button type="button" class="btn" id="btnPrint">🖨️ Print / Download Invoice</button>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /** Converts number to Indian Rupees in words (whole part only). */
+      function amountInWords(n) {
+        const frac = Math.round((n - Math.floor(n)) * 100);
+        n = Math.floor(n);
+        if (n === 0 && frac === 0) return 'Zero';
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        function upTo99(x) {
+          if (x < 20) return ones[x];
+          return (tens[Math.floor(x / 10)] + ' ' + ones[x % 10]).trim();
+        }
+        function upTo999(x) {
+          if (x < 100) return upTo99(x);
+          return (ones[Math.floor(x / 100)] + ' Hundred ' + upTo99(x % 100)).trim();
+        }
+        function upTo99999(x) {
+          if (x < 1000) return upTo999(x);
+          return (upTo999(Math.floor(x / 1000)) + ' Thousand ' + upTo999(x % 1000)).trim();
+        }
+        function upTo9999999(x) {
+          if (x < 100000) return upTo99999(x);
+          return (upTo999(Math.floor(x / 100000)) + ' Lakh ' + upTo99999(x % 100000)).trim();
+        }
+        function upTo999999999(x) {
+          if (x < 10000000) return upTo9999999(x);
+          return (upTo999(Math.floor(x / 10000000)) + ' Crore ' + upTo9999999(x % 10000000)).trim();
+        }
+        const words = upTo999999999(n).replace(/\s+/g, ' ').trim();
+        return words ? 'Rs. ' + words + ' Only' : 'Rs. Zero Only';
+      }
+
+      function render(d) {
+        const wrap = document.getElementById('invoiceContent');
+        const noData = document.getElementById('noDataMsg');
+        const bar = document.getElementById('actionsBar');
+        if (!d || !d.rows || !d.rows.length) {
+          noData.style.display = 'block';
+          bar.style.display = 'none';
+          return;
+        }
+        noData.style.display = 'none';
+        bar.style.display = 'flex';
+
+        const cols = (d.columns || []).map(c => ({ key: c.key, header: c.header, numeric: c.numeric, computed: c.computed }));
+        if (!cols.length) {
+          cols.push(
+            { key: 'guestName', header: 'Guest Name', numeric: false, computed: false },
+            { key: 'pnrNo', header: 'PNR No.', numeric: false, computed: false },
+            { key: 'travelDate', header: 'Travel Date', numeric: false, computed: false },
+            { key: 'travelPlan', header: 'Travel Plan', numeric: false, computed: false },
+            { key: 'vehicle', header: 'Vehicle', numeric: false, computed: false },
+            { key: 'vehicleNo', header: 'Vehicle No.', numeric: false, computed: false },
+            { key: 'packageCost', header: 'Package Cost', numeric: true, computed: false },
+            { key: 'parkingToll', header: 'Parking / Toll', numeric: true, computed: false },
+            { key: 'totalPayment', header: 'Total Payment', numeric: true, computed: true }
+          );
+        }
+
+        const fmtDate = (s) => {
+          if (!s) return '—';
+          const d = new Date(s);
+          if (isNaN(d.getTime())) return s;
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          return day + '-' + month + '-' + year;
+        };
+
+        let html = '';
+        html += '<header class="invoice-header">';
+        html += '<div class="header-company-section">';
+        html += '<div class="header-company-top"><div class="header-spacer"></div><h1 class="company-name">RAJASTHAN ROUTE CABS</h1><div class="gstin-top-right"><strong>GSTIN: 08NHSPS2340H1ZN</strong></div></div>';
+        html += '<div class="company-details"><p>Head Office: Plot No. 142, Shri Ganesh Nagar – E, Boytawala, Benad Road, Jaipur 302012</p><p>Branch Office: Shop No. 1, Mali Colony Road, 100 Ft Road, Udaipur</p><p>Mobile +91 86194 25193</p></div>';
+        html += '</div>';
+        html += '<div class="header-sep"></div>';
+        html += '<div class="header-bottom-section">';
+        html += '<div class="header-customer-col">';
+        html += '<p><span class="label">M/s. </span><strong>' + (d.customerName || '—') + '</strong></p>';
+        html += '<p><span class="label">Address: </span>' + (d.address || '—') + '</p>';
+        html += '<p><span class="label">City: </span>' + (d.city || '—') + ' &nbsp; <span class="label">State: </span>' + (d.state || '—') + '</p>';
+        html += '<p><span class="label">GSTIN No. </span><strong>' + (d.customerGstin || '—') + '</strong></p>';
+        html += '</div>';
+        html += '<div class="header-invoice-col">';
+        html += '<p class="inv-line"><strong>Bill No.: ' + (d.billNo || '—') + '</strong></p>';
+        html += '<p class="inv-line">Bill Date: ' + fmtDate(d.billDate) + '</p>';
+        html += '<p class="inv-line"><span class="label">Vehicle Type: </span>' + (d.vehicleType || '—') + ' &nbsp; <span class="label">Vehicle User: </span>' + (d.vehicleUser || '—') + '</p>';
+        html += '</div>';
+        html += '</div>';
+        html += '</header>';
+
+        html += '<table class="preview-table"><thead><tr>';
+        cols.forEach(c => { html += '<th' + (c.numeric ? ' class="num"' : '') + '>' + (c.header || c.key) + '</th>'; });
+        html += '</tr></thead><tbody>';
+        (d.rows || []).forEach(row => {
+          html += '<tr>';
+          cols.forEach(c => {
+            let val = row[c.key];
+            if (c.computed && c.key === 'totalPayment') {
+              const p = parseFloat(row.packageCost || 0) || 0;
+              const t = parseFloat(row.parkingToll || 0) || 0;
+              val = (p + t).toFixed(0);
+            }
+            if (c.key === 'travelDate' && val) val = fmtDate(val);
+            html += '<td' + (c.numeric ? ' class="num"' : '') + '>' + (val != null && val !== '' ? String(val) : '—') + '</td>';
+          });
+          html += '</tr>';
+        });
+        const totalColspan = cols.length - 1;
+        const dataCols = cols.filter(c => !c.computed);
+        const totalPaymentCol = cols.findIndex(c => c.key === 'totalPayment');
+        const sum = (d.rows || []).reduce((s, r) => s + (parseFloat(r.totalPayment || (parseFloat(r.packageCost||0)+parseFloat(r.parkingToll||0))) || 0), 0);
+        html += '</tbody><tfoot><tr><td colspan="' + totalColspan + '" style="text-align:right;font-weight:700;">TOTAL</td><td class="num" style="font-weight:700;">' + sum.toFixed(0) + '</td></tr></tfoot></table>';
+
+        html += '<div class="two-cols">';
+        html += '<div class="bank-block"><h4>Bank Details</h4><p><strong>Bank Name</strong> HDFC BANK</p><p><strong>Account Name</strong> RAJASTHAN ROUTE CABS</p><p><strong>Account No</strong> 50200106469978</p><p><strong>IFSC Code</strong> HDFC0005717</p><p><strong>Account Type</strong> Current A/C</p><p><strong>Branch Address</strong> Niwaroo Road, Jaipur</p></div>';
+        html += '<div style="flex:1;min-width:260px;">';
+        html += '<div class="amount-words"><strong>Invoice Amount in words:</strong> ' + amountInWords(parseFloat(d.grandTotal) || 0) + '</div>';
+        html += '<div class="calc-block">';
+        html += '<div class="row"><span>Toll/Board tax/Parking</span><span>—</span></div>';
+        html += '<div class="row"><span>Driver DA/Night Hold</span><span>—</span></div>';
+        html += '<div class="row"><strong>Taxable Amount</strong><strong>' + (d.taxableAmount != null ? Number(d.taxableAmount).toFixed(0) : '0') + '</strong></div>';
+        html += '<div class="row"><span>CGST @ 9%</span><span>' + (d.cgst > 0 ? Number(d.cgst).toFixed(2) : '—') + '</span></div>';
+        html += '<div class="row"><span>SGST @ 9%</span><span>' + (d.sgst > 0 ? Number(d.sgst).toFixed(2) : '—') + '</span></div>';
+        html += '<div class="row"><span>IGST @ 18%</span><span>' + (d.igst > 0 ? Number(d.igst).toFixed(2) : '—') + '</span></div>';
+        html += '<div class="row"><strong>TOTAL GST</strong><strong>' + (d.totalGst != null ? Number(d.totalGst).toFixed(2) : '0') + '</strong></div>';
+        html += '<div class="row grand"><span>GRAND TOTAL</span><span>' + (d.grandTotal != null ? Number(d.grandTotal).toFixed(2) : '0') + '</span></div>';
+        html += '<div class="for-company">For: Rajasthan Route Cabs</div>';
+        html += '</div></div></div>';
+
+        html += '<div class="footer-notes"><ol><li>Subject to Udaipur Jurisdiction.</li><li>If payment is not received within 15 days, Interest @ 18% p.a. will be charged.</li><li>E. & O.E</li><li>Please issue the cheque/DD/Pay Order in favor of Rajasthan Route Cabs, Jaipur</li></ol></div>';
+        html += '<div class="sign-block"><div class="line"></div><div class="label">Proprietor Signature</div></div>';
+
+        wrap.innerHTML = html;
+      }
+
+      let data = null;
+      try {
+        const raw = localStorage.getItem('falcon_invoice_data');
+        if (raw) data = JSON.parse(raw);
+      } catch (e) {}
+      render(data);
+
+      document.getElementById('btnPrint').addEventListener('click', function () {
+        window.print();
+      });
+    })();
+  </script>
+</body>
+</html>
