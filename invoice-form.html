@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Generator — Falcon Tools</title>
+  <style>
+    :root {
+      --invoice-red: #c41e3a;
+      --border: 1px solid #333;
+      --cell-pad: 6px 8px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 14px; background: #f5f5f5; padding: 16px; }
+    .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 20px; border: var(--border); }
+
+    /* —— Header (hardcoded company) —— */
+    .invoice-header { border-bottom: var(--border); padding-bottom: 12px; margin-bottom: 12px; }
+    .invoice-header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+    .company-name { color: var(--invoice-red); font-size: 22px; font-weight: 700; text-align: center; flex: 1; }
+    .gstin-right { text-align: right; }
+    .company-details { text-align: center; margin-top: 8px; }
+    .company-details p { margin: 2px 0; }
+    .bill-meta { border: var(--border); padding: 8px; display: inline-block; margin-top: 8px; }
+    .bill-meta label { display: inline-block; margin-right: 8px; }
+    .bill-meta input { max-width: 120px; padding: 4px; }
+
+    /* —— Customer & invoice form —— */
+    .section-title { font-weight: 700; margin: 16px 0 8px 0; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+    .form-grid label { display: block; margin-bottom: 2px; font-weight: 500; }
+    .form-grid input, .form-grid select { width: 100%; padding: 6px 8px; border: var(--border); }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    /* —— Dynamic table —— */
+    .table-wrap { overflow-x: auto; margin: 16px 0; border: var(--border); }
+    table.invoice-table { width: 100%; border-collapse: collapse; }
+    table.invoice-table th, table.invoice-table td { border: var(--border); padding: var(--cell-pad); text-align: left; }
+    table.invoice-table th { background: #eee; font-weight: 600; }
+    table.invoice-table input { width: 100%; min-width: 60px; border: none; padding: 4px; }
+    table.invoice-table .num { text-align: right; }
+    table.invoice-table .total-payment { font-weight: 600; }
+    .col-actions { white-space: nowrap; }
+    .btn-cell { padding: 2px 6px; cursor: pointer; border: 1px solid #666; background: #f0f0f0; margin: 0 2px; }
+    .btn-cell:hover { background: #e0e0e0; }
+    .table-toolbar { margin-bottom: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .table-toolbar button { padding: 8px 12px; cursor: pointer; border: var(--border); background: #f0f0f0; }
+    .table-toolbar button:hover { background: #e0e0e0; }
+    /* Editable column headers */
+    table.invoice-table th .header-cell-wrap { display: flex; align-items: center; gap: 4px; }
+    table.invoice-table th .header-input { border: none; background: transparent; font-weight: 600; width: 100%; min-width: 50px; padding: 0; }
+    table.invoice-table th .header-remove { flex-shrink: 0; padding: 2px 6px; cursor: pointer; border: 1px solid #999; background: #f8d7da; color: #721c24; font-size: 12px; line-height: 1; }
+    table.invoice-table th .header-remove:hover { background: #f5c6cb; }
+    table.invoice-table th.col-actions .header-cell-wrap { display: block; }
+
+    /* —— Bank details (hardcoded) —— */
+    .bank-details { border: var(--border); padding: 12px; margin: 16px 0; background: #fafafa; }
+    .bank-details h4 { margin: 0 0 8px 0; }
+    .bank-details p { margin: 4px 0; }
+
+    /* —— Calc summary (right) —— */
+    .calc-summary { border: var(--border); padding: 12px; max-width: 320px; margin-left: auto; margin-top: 16px; }
+    .calc-summary .row { display: flex; justify-content: space-between; padding: 4px 0; }
+    .calc-summary .grand { font-size: 16px; font-weight: 700; color: var(--invoice-red); margin-top: 8px; padding-top: 8px; border-top: 2px solid #333; }
+
+    /* —— Actions —— */
+    .actions { margin-top: 20px; display: flex; gap: 12px; align-items: center; }
+    .actions .btn-primary { padding: 12px 24px; background: var(--invoice-red); color: #fff; border: none; cursor: pointer; font-size: 16px; font-weight: 600; }
+    .actions .btn-primary:hover { opacity: 0.9; }
+    .back-link { color: #0b6efd; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- A. Header (hardcoded company) -->
+    <header class="invoice-header">
+      <div class="invoice-header-top">
+        <div style="min-width: 140px;"></div>
+        <h1 class="company-name">RAJASTHAN ROUTE CABS</h1>
+        <div class="gstin-right">
+          <strong>GSTIN: 08NHSPS2340H1ZN</strong>
+        </div>
+      </div>
+      <div class="company-details">
+        <p>Head Office: Plot No. 142, Shri Ganesh Nagar – E, Boytawala, Benad Road, Jaipur 302012</p>
+        <p>Branch Office: Shop No. 1, Mali Colony Road, 100 Ft Road, Udaipur</p>
+        <p>Mobile +91 86194 25193</p>
+      </div>
+      <div class="bill-meta">
+        <label>Bill No.: <input type="text" id="billNo" placeholder="e.g. 032" /></label>
+        <label>Bill Date: <input type="date" id="billDate" /></label>
+        <label>Vehicle Type: <input type="text" id="vehicleType" placeholder="—" /></label>
+        <label>Vehicle User: <input type="text" id="vehicleUser" placeholder="—" /></label>
+      </div>
+    </header>
+
+    <!-- B. Customer & invoice details form -->
+    <section class="customer-form">
+      <h3 class="section-title">Customer & Invoice Details</h3>
+      <div class="form-grid">
+        <div class="full"><label>Customer Name (M/s.)</label><input type="text" id="customerName" placeholder="e.g. GRAVITA INDIA LIMITED" /></div>
+        <div class="full"><label>Address</label><input type="text" id="address" placeholder="e.g. Gravita Tower A-27-B, Tilak Nagar, Shanti Path, Jaipur-302004" /></div>
+        <div><label>City</label><input type="text" id="city" placeholder="e.g. Jaipur" /></div>
+        <div><label>State</label><input type="text" id="state" placeholder="e.g. Rajasthan" /></div>
+        <div class="full"><label>Customer GSTIN</label><input type="text" id="customerGstin" placeholder="e.g. 08AAACG6753F3ZK" /></div>
+      </div>
+    </section>
+
+    <!-- C. Dynamic invoice table (CRUD) -->
+    <section class="invoice-table-section">
+      <h3 class="section-title">Invoice Items</h3>
+      <div class="table-toolbar">
+        <button type="button" id="btnAddRow" title="Add row">➕ Add row</button>
+        <button type="button" id="btnAddCol" title="Add column">➕ Add column</button>
+        <button type="button" id="btnRemoveCol" title="Remove last column">❌ Remove column</button>
+      </div>
+      <div class="table-wrap">
+        <table class="invoice-table" id="invoiceTable">
+          <thead>
+            <tr id="tableHeadRow">
+              <th>Guest Name</th>
+              <th>PNR No.</th>
+              <th>Travel Date</th>
+              <th>Travel Plan</th>
+              <th>Vehicle</th>
+              <th>Vehicle No.</th>
+              <th>Package Cost</th>
+              <th>Parking / Toll</th>
+              <th class="total-col">Total Payment</th>
+              <th class="col-actions">Delete</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+          <tfoot>
+            <tr id="totalRow"><td colspan="8" style="text-align:right;font-weight:700;">TOTAL</td><td id="subtotalCell" class="num total-payment">0</td><td></td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- Bank details (hardcoded) -->
+    <section class="bank-details">
+      <h4>Bank Details</h4>
+      <p><strong>Bank Name</strong> HDFC BANK</p>
+      <p><strong>Account Name</strong> RAJASTHAN ROUTE CABS</p>
+      <p><strong>Account No</strong> 50200106469978</p>
+      <p><strong>IFSC Code</strong> HDFC0005717</p>
+      <p><strong>Account Type</strong> Current A/C</p>
+      <p><strong>Branch Address</strong> Niwaroo Road, Jaipur</p>
+    </section>
+
+    <!-- Calculation summary -->
+    <section class="calc-summary" id="calcSummary">
+      <div class="row"><span>Toll/Board tax/Parking</span><span>—</span></div>
+      <div class="row"><span>Driver DA/Night Hold</span><span>—</span></div>
+      <div class="row"><strong>Taxable Amount</strong><strong id="taxableAmount">0</strong></div>
+      <div class="row"><span>CGST @ 9%</span><span id="cgstVal">0</span></div>
+      <div class="row"><span>SGST @ 9%</span><span id="sgstVal">0</span></div>
+      <div class="row"><span>IGST @ 18%</span><span id="igstVal">—</span></div>
+      <div class="row"><strong>TOTAL GST</strong><strong id="totalGst">0</strong></div>
+      <div class="row grand"><span>GRAND TOTAL</span><span id="grandTotal">0</span></div>
+    </section>
+
+    <div class="actions">
+      <a href="index.html" class="back-link">← Back to Falcon Tools</a>
+      <button type="button" class="btn-primary" id="btnGenerateInvoice">Generate Invoice</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Default column definitions: [key, header, isNumeric, isComputed]
+      const DEFAULT_COLUMNS = [
+        ['guestName', 'Guest Name', false, false],
+        ['pnrNo', 'PNR No.', false, false],
+        ['travelDate', 'Travel Date', false, false],
+        ['travelPlan', 'Travel Plan', false, false],
+        ['vehicle', 'Vehicle', false, false],
+        ['vehicleNo', 'Vehicle No.', false, false],
+        ['packageCost', 'Package Cost', true, false],
+        ['parkingToll', 'Parking / Toll', true, false],
+        ['totalPayment', 'Total Payment', true, true]
+      ];
+
+      let columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
+      let customColIndex = 0;
+
+      const tableBody = document.getElementById('tableBody');
+      const tableHeadRow = document.getElementById('tableHeadRow');
+      const invoiceTable = document.getElementById('invoiceTable');
+      const totalRow = document.getElementById('totalRow');
+      const subtotalCell = document.getElementById('subtotalCell');
+
+      function getColIndexForKey(key) {
+        return columns.findIndex(c => c[0] === key);
+      }
+
+      function getTotalPaymentColIndex() {
+        return columns.findIndex(c => c[0] === 'totalPayment');
+      }
+
+      /** Indices of numeric non-computed columns (used for row total). */
+      function getNumericIndices() {
+        return columns.map((c, i) => (c[2] && !c[3]) ? i : null).filter(x => x != null);
+      }
+
+      function addRow() {
+        const tr = document.createElement('tr');
+        const numericIndices = getNumericIndices();
+        columns.forEach((col, i) => {
+          const td = document.createElement('td');
+          td.className = col[2] ? 'num' : '';
+          if (col[3]) {
+            td.classList.add('total-payment');
+            td.setAttribute('data-computed', '1');
+            td.setAttribute('data-numeric-indices', numericIndices.join(','));
+            td.textContent = '0';
+          } else {
+            const input = document.createElement('input');
+            input.type = col[1].toLowerCase().includes('date') ? 'date' : 'text';
+            input.dataset.colIndex = String(i);
+            input.dataset.colKey = col[0];
+            if (col[2]) input.addEventListener('input', recalcRow);
+            td.appendChild(input);
+          }
+          tr.appendChild(td);
+        });
+        const delTd = document.createElement('td');
+        delTd.className = 'col-actions';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn-cell';
+        delBtn.textContent = '❌';
+        delBtn.title = 'Delete row';
+        delBtn.addEventListener('click', function () { tr.remove(); recalcAll(); });
+        delTd.appendChild(delBtn);
+        tr.appendChild(delTd);
+        tableBody.appendChild(tr);
+        recalcAll();
+      }
+
+      function recalcRow(e) {
+        const input = e.target;
+        const tr = input.closest('tr');
+        if (!tr) return;
+        const tdTotal = tr.querySelector('td[data-computed="1"]');
+        if (!tdTotal) return;
+        const indicesStr = tdTotal.getAttribute('data-numeric-indices') || '';
+        const indices = indicesStr ? indicesStr.split(',').map(function (x) { return parseInt(x, 10); }).filter(function (n) { return !isNaN(n); }) : [];
+        const cells = tr.querySelectorAll('td');
+        let sum = 0;
+        indices.forEach(function (idx) {
+          var cell = cells[idx];
+          var inp = cell && cell.querySelector('input');
+          sum += parseFloat((inp && inp.value) || 0) || 0;
+        });
+        tdTotal.textContent = sum.toFixed(0);
+        recalcAll();
+      }
+
+      function recalcAll() {
+        const totalPaymentIdx = getTotalPaymentColIndex();
+        if (totalPaymentIdx < 0) return;
+        let sum = 0;
+        tableBody.querySelectorAll('tr').forEach(tr => {
+          const cells = tr.querySelectorAll('td');
+          const totalTd = tr.querySelector('td[data-computed="1"]');
+          if (totalTd && cells[totalPaymentIdx]) {
+            const v = parseFloat(totalTd.textContent) || 0;
+            sum += v;
+          }
+        });
+        const subEl = document.getElementById('subtotalCell');
+        if (subEl) subEl.textContent = sum.toFixed(0);
+
+        const state = (document.getElementById('state').value || '').trim();
+        const isRajasthan = state.toLowerCase() === 'rajasthan';
+        const taxable = sum;
+        let cgst = 0, sgst = 0, igst = 0;
+        if (isRajasthan) {
+          cgst = taxable * 0.09;
+          sgst = taxable * 0.09;
+        } else {
+          igst = taxable * 0.18;
+        }
+        const totalGst = cgst + sgst + igst;
+        const grand = taxable + totalGst;
+
+        document.getElementById('taxableAmount').textContent = taxable.toFixed(0);
+        document.getElementById('cgstVal').textContent = cgst > 0 ? cgst.toFixed(2) : '—';
+        document.getElementById('sgstVal').textContent = sgst > 0 ? sgst.toFixed(2) : '—';
+        document.getElementById('igstVal').textContent = igst > 0 ? igst.toFixed(2) : '—';
+        document.getElementById('totalGst').textContent = totalGst.toFixed(2);
+        document.getElementById('grandTotal').textContent = grand.toFixed(2);
+      }
+
+      function redrawHeader() {
+        const fragment = document.createDocumentFragment();
+        columns.forEach((col, i) => {
+          const th = document.createElement('th');
+          if (col[2]) th.classList.add('num');
+          const wrap = document.createElement('div');
+          wrap.className = 'header-cell-wrap';
+          const inp = document.createElement('input');
+          inp.type = 'text';
+          inp.className = 'header-input';
+          inp.value = col[1];
+          inp.dataset.colIndex = String(i);
+          inp.addEventListener('change', function () {
+            var idx = parseInt(this.dataset.colIndex, 10);
+            if (columns[idx]) columns[idx][1] = this.value.trim() || columns[idx][1];
+          });
+          wrap.appendChild(inp);
+          if (!col[3]) {
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'header-remove';
+            removeBtn.title = 'Remove this column';
+            removeBtn.textContent = '\u00D7';
+            removeBtn.addEventListener('click', function () { removeColumnAtIndex(i); });
+            wrap.appendChild(removeBtn);
+          }
+          th.appendChild(wrap);
+          fragment.appendChild(th);
+        });
+        const delTh = document.createElement('th');
+        delTh.className = 'col-actions';
+        delTh.innerHTML = '<div class="header-cell-wrap">Delete</div>';
+        fragment.appendChild(delTh);
+        tableHeadRow.innerHTML = '';
+        tableHeadRow.appendChild(fragment);
+      }
+
+      function redrawBody() {
+        const rows = [];
+        tableBody.querySelectorAll('tr').forEach(tr => {
+          const row = {};
+          tr.querySelectorAll('td').forEach((td, i) => {
+            if (i < columns.length) {
+              const inp = td.querySelector('input');
+              row[columns[i][0]] = inp ? inp.value : td.textContent;
+            }
+          });
+          rows.push(row);
+        });
+        tableBody.innerHTML = '';
+        redrawHeader();
+        totalRow.innerHTML = '';
+        const totalColspan = columns.length - 1;
+        const totalLabelTd = document.createElement('td');
+        totalLabelTd.colSpan = totalColspan;
+        totalLabelTd.style.textAlign = 'right';
+        totalLabelTd.style.fontWeight = '700';
+        totalLabelTd.textContent = 'TOTAL';
+        totalRow.appendChild(totalLabelTd);
+        const totalValTd = document.createElement('td');
+        totalValTd.id = 'subtotalCell';
+        totalValTd.className = 'num total-payment';
+        totalRow.appendChild(totalValTd);
+        const emptyTd = document.createElement('td');
+        totalRow.appendChild(emptyTd);
+
+        const numericIndices = getNumericIndices();
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+          columns.forEach((col, i) => {
+            const td = document.createElement('td');
+            td.className = col[2] ? 'num' : '';
+            if (col[3]) {
+              td.classList.add('total-payment');
+              td.setAttribute('data-computed', '1');
+              td.setAttribute('data-numeric-indices', numericIndices.join(','));
+              var rowSum = 0;
+              numericIndices.forEach(function (idx) {
+                rowSum += parseFloat(row[columns[idx][0]] || 0) || 0;
+              });
+              td.textContent = rowSum.toFixed(0);
+            } else {
+              const input = document.createElement('input');
+              input.type = col[1].toLowerCase().includes('date') ? 'date' : 'text';
+              input.value = row[col[0]] || '';
+              input.dataset.colIndex = String(i);
+              input.dataset.colKey = col[0];
+              if (col[2]) input.addEventListener('input', recalcRow);
+              td.appendChild(input);
+            }
+            tr.appendChild(td);
+          });
+          const delTd = document.createElement('td');
+          delTd.className = 'col-actions';
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'btn-cell';
+          delBtn.textContent = '❌';
+          delBtn.addEventListener('click', function () { tr.remove(); recalcAll(); });
+          delTd.appendChild(delBtn);
+          tr.appendChild(delTd);
+          tableBody.appendChild(tr);
+        });
+        recalcAll();
+      }
+
+      function addColumn() {
+        const key = 'custom_' + (++customColIndex);
+        const header = 'Column ' + customColIndex;
+        columns.splice(columns.length - 1, 0, [key, header, false, false]);
+        redrawBody();
+      }
+
+      /** Remove column at index i. Requires at least 2 columns (one data + Total Payment). */
+      function removeColumnAtIndex(i) {
+        if (columns.length <= 2) return;
+        if (i < 0 || i >= columns.length) return;
+        columns.splice(i, 1);
+        redrawBody();
+      }
+
+      /** Remove the last data column (before Total Payment). */
+      function removeColumn() {
+        if (columns.length <= 2) return;
+        columns.splice(columns.length - 2, 1);
+        redrawBody();
+      }
+
+      function getTableData() {
+        const rows = [];
+        tableBody.querySelectorAll('tr').forEach(tr => {
+          const obj = {};
+          tr.querySelectorAll('td').forEach((td, i) => {
+            if (i < columns.length) {
+              const inp = td.querySelector('input');
+              obj[columns[i][0]] = inp ? inp.value : td.textContent;
+            }
+          });
+          rows.push(obj);
+        });
+        return rows;
+      }
+
+      function validate() {
+        const customerName = document.getElementById('customerName').value.trim();
+        const billNo = document.getElementById('billNo').value.trim();
+        const billDate = document.getElementById('billDate').value.trim();
+        const state = document.getElementById('state').value.trim();
+        if (!customerName) { alert('Please enter Customer Name.'); return false; }
+        if (!billNo) { alert('Please enter Bill No.'); return false; }
+        if (!billDate) { alert('Please enter Bill Date.'); return false; }
+        if (!state) { alert('Please enter State (required for GST).'); return false; }
+        const rows = getTableData();
+        if (!rows.length) { alert('Please add at least one invoice row.'); return false; }
+        return true;
+      }
+
+      function saveAndRedirect() {
+        if (!validate()) return;
+        const state = (document.getElementById('state').value || '').trim();
+        const isRajasthan = state.toLowerCase() === 'rajasthan';
+        const taxable = parseFloat(document.getElementById('taxableAmount').textContent) || 0;
+        let cgst = 0, sgst = 0, igst = 0;
+        if (isRajasthan) { cgst = taxable * 0.09; sgst = taxable * 0.09; } else { igst = taxable * 0.18; }
+        const totalGst = cgst + sgst + igst;
+        const grandTotal = taxable + totalGst;
+
+        const payload = {
+          billNo: document.getElementById('billNo').value,
+          billDate: document.getElementById('billDate').value,
+          vehicleType: document.getElementById('vehicleType').value,
+          vehicleUser: document.getElementById('vehicleUser').value,
+          customerName: document.getElementById('customerName').value,
+          address: document.getElementById('address').value,
+          city: document.getElementById('city').value,
+          state: document.getElementById('state').value,
+          customerGstin: document.getElementById('customerGstin').value,
+          columns: columns.map(c => ({ key: c[0], header: c[1], numeric: c[2], computed: c[3] })),
+          rows: getTableData(),
+          taxableAmount: taxable,
+          cgst, sgst, igst, totalGst, grandTotal
+        };
+        try { localStorage.setItem('falcon_invoice_data', JSON.stringify(payload)); } catch (e) { alert('Could not save data.'); return; }
+        window.location.href = 'invoice-preview.html';
+      }
+
+      document.getElementById('btnAddRow').addEventListener('click', addRow);
+      document.getElementById('btnAddCol').addEventListener('click', addColumn);
+      document.getElementById('btnRemoveCol').addEventListener('click', removeColumn);
+      document.getElementById('btnGenerateInvoice').addEventListener('click', saveAndRedirect);
+      document.getElementById('state').addEventListener('input', recalcAll);
+
+      var today = new Date().toISOString().slice(0, 10);
+      var dateEl = document.getElementById('billDate');
+      if (dateEl && !dateEl.value) dateEl.value = today;
+
+      redrawHeader();
+      addRow();
+    })();
+  </script>
+</body>
+</html>
