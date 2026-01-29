@@ -1,75 +1,325 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Invoice Preview — Rajasthan Route Cabs</title>
-  <style>
-    :root { --invoice-red: #c41e3a; --invoice-blue: #1e3a8a; --border: 1px solid #333; --border-thick: 2px solid #000; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; font-size: 14px; background: #f5f5f5; padding: 16px; }
-    .invoice-page { max-width: 900px; margin: 0 auto; background: #fff; padding: 24px; border: var(--border); }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice Preview — Rajasthan Route Cabs</title>
+    <style>
+      :root {
+    --invoice-red: #c41e3a;
+    --invoice-blue: #1e3a8a;
+    --border: 1px solid #000;
+    --border-thick: 1.25px solid #000;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    background: #f5f5f5;
+    padding: 16px;
+  }
+  .invoice-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #fff;
+    border: var(--border);
+  }
 
-    /* Header: one box, thick border, matches invoice ref */
-    .invoice-header { border: var(--border); margin-bottom: 12px; }
-    .invoice-header .header-company-section { padding: 12px 16px 8px; }
-    .invoice-header .header-company-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .invoice-header .header-company-top .header-spacer { flex: 1; min-width: 0; }
-    .invoice-header .gstin-top-right { font-size: 12px; font-weight: 700; color: var(--invoice-blue); text-align: right; flex: 1; min-width: 0; }
-    .invoice-header .company-name { color: var(--invoice-red); font-size: 22px; font-weight: 700; text-align: center; flex: 0 0 auto; margin: 0; }
-    .invoice-header .company-details { text-align: center; margin-top: 8px; }
-    .invoice-header .company-details p { margin: 2px 0; font-size: 13px; color: var(--invoice-blue); }
-    .invoice-header .header-sep { height: 0; border-top: 1px solid #000; }
-    .invoice-header .header-bottom-section { display: grid; grid-template-columns: 1fr 200px; border-top: 1px solid #000; }
-    .invoice-header .header-customer-col { padding: 10px 12px; border-right: 1px solid #000; }
-    .invoice-header .header-customer-col p { margin: 6px 0; text-align: left; min-height: 1.4em; }
-    .invoice-header .header-customer-col .label { font-weight: 600; }
-    .invoice-header .header-invoice-col { padding: 10px 12px; display: flex; flex-direction: column; justify-content: flex-start; }
-    .invoice-header .header-invoice-col .inv-line { margin: 6px 0; text-align: right; font-size: 13px; min-height: 1.4em; }
-    .invoice-header .header-invoice-col .inv-line:first-child { margin-top: 0; }
-    .two-cols { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
-    .bank-block { border: var(--border); padding: 12px; flex: 1; min-width: 260px; background: #fafafa; }
-    .bank-block h4 { margin: 0 0 8px 0; }
-    .bank-block p { margin: 4px 0; }
-    .amount-words { border: var(--border); padding: 10px; margin-top: 12px; }
-    .amount-words strong { margin-right: 6px; }
+  /* Header: one box, thick border, matches invoice ref */
+  .invoice-header {
+    border: var(--border);
+    margin-bottom: 0;
+  }
+  .invoice-header .header-company-section {
+    padding: 12px 16px 8px;
+  }
+  .invoice-header .header-company-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .invoice-header .header-company-top .header-spacer {
+    flex: 1;
+    min-width: 0;
+  }
+  .invoice-header .gstin-top-right {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--invoice-blue);
+    text-align: right;
+    flex: 1;
+    min-width: 0;
+  }
+  .invoice-header .company-name {
+    color: var(--invoice-red);
+    font-size: 22px;
+    font-weight: 700;
+    text-align: center;
+    flex: 0 0 auto;
+    margin: 0;
+  }
+  .invoice-header .company-details {
+    text-align: center;
+    margin-top: 8px;
+  }
+  .invoice-header .company-details p {
+    margin: 2px 0;
+    font-size: 13px;
+    color: var(--invoice-blue);
+  }
+  .invoice-header .header-sep {
+    height: 0;
+    border-top: 1px solid #000;
+  }
 
-    table.preview-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-    table.preview-table th, table.preview-table td { border: var(--border); padding: 6px 8px; text-align: left; }
-    table.preview-table th { background: #eee; font-weight: 600; }
-    table.preview-table .num { text-align: right; }
-    .calc-block { border: var(--border); padding: 12px; max-width: 320px; margin-left: auto; margin-top: 12px; }
-    .calc-block .row { display: flex; justify-content: space-between; padding: 4px 0; }
-    .calc-block .grand { font-size: 16px; font-weight: 700; color: var(--invoice-red); margin-top: 8px; padding-top: 8px; border-top: 2px solid #333; }
-    .for-company { color: var(--invoice-red); font-weight: 600; margin-top: 8px; }
+  /* Client and Invoice Details Section - separate from header */
+  .details-section {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    border: var(--border);
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .details-customer-col {
+    padding: 10px 12px;
+    border-right: var(--border);
+  }
+  .details-customer-col p {
+    margin: 4px 0;
+    text-align: left;
+  }
+  .details-customer-col .label {
+    font-weight: 600;
+  }
+  .details-customer-col strong {
+    font-size: 15px;
+  }
+  .details-invoice-col {
+    padding-top: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .details-invoice-col .inv-line {
+    margin: 4px 0;
+    text-align: right;
+    font-size: 13px;
+  }
+  .details-invoice-col .inv-line:first-child {
+    margin-top: 0;
+  }
+  .details-invoice-col .bill-label {
+    text-align: right;
+    padding-inline: 12px;
+    padding-left: 12px; 
+  }
+  .details-invoice-col .vehicle-label {
+    border-top: var(--border);
+    margin-top: 18px;
+    padding-top: 6px;
+    text-align: left;
+    padding-inline: 4px; 
+  }
+  .details-invoice-col .vehicle-label .label {
+    font-weight: 600;
+  }
+  .two-cols {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 0;
+    align-items: flex-start;
+    border: var(--border);
+    border-bottom: 2px solid #000;
+  }
+  .bank-details-col {
+    flex: 1;
+    min-width: 260px;
+}
+.bank-block {
+    border: none;
+    padding: 0;
+    margin-bottom: 12px;
+    padding-inline: 4px;
+    padding-top: 4px;
+    background: transparent;
+}
+.bank-block h4 {
+    margin: 0 0 8px 0;
+    font-weight: 700;
+}
+.bank-block p {
+    margin: 4px 0;
+    text-align: left;
+}
+.amount-words {
+    border: none;
+    padding: 0;
+    margin-top: 12px;
+    padding-inline: 4px;
+    padding-top: 4px;
+    text-align: left;
+  }
+  .amount-words strong {
+    margin-right: 6px;
+  }
+  .totals-col {
+    flex: 0 0 auto;
+    min-width: 150px;
+  }
 
-    .footer-notes { margin-top: 24px; font-size: 12px; }
-    .footer-notes ol { margin: 4px 0; padding-left: 20px; }
-    .sign-block { text-align: right; margin-top: 24px; }
-    .sign-block .line { border-bottom: 1px solid #333; width: 180px; display: inline-block; margin-bottom: 4px; }
-    .sign-block .label { font-size: 12px; }
+  table.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    margin-bottom: 0;
+  }
+  table.preview-table th,
+  table.preview-table td {
+    border: var(--border);
+    padding: 6px 8px;
+    text-align: left;
+  }
+  table.preview-table th {
+    background: #eee;
+    font-weight: 500;
+    font-size: 13px;
+    text-align: center;
+  }
+  table.preview-table td {
+    font-size: 12px;
+  }
+  table.preview-table .num {
+    text-align: right;
+  }
+  .calc-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .calc-table td {
+    border: var(--border-thick);
+    border-right: none;
+    border-top: none;
+    padding: 7px;
+    text-align: right;
+    font-size: 12px;
+  }
+  .calc-table td.num {
+    text-align: right;
+  }
+  .calc-table .empty-row td {
+    padding: 4px 8px;
+  }
+  .calc-table .grand-row td {
+    font-size: 16px;
+    font-weight: 700;
+    border-bottom: none;
+  }
+  .calc-table .grand-row td {
+    font-weight: 700;
+    font-size: 12px;
+    border-bottom: none;
+  }
 
-    .no-print { margin-top: 20px; display: flex; gap: 12px; align-items: center; }
-    .no-print .btn { padding: 12px 24px; background: var(--invoice-red); color: #fff; border: none; cursor: pointer; font-size: 16px; font-weight: 600; }
-    .no-print .btn:hover { opacity: 0.9; }
-    .no-print .back { color: #0b6efd; text-decoration: none; }
+  .footer-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-right: var(--border);
+    border-left: var(--border);
+    border-bottom: var(--border);
+    padding: 6px;
+    padding-top: 20px;
+    gap: 24px;
+  }
+  .footer-notes {
+    flex: 1;
+    font-size: 12px;
+    margin: 0;
+    color: var(--invoice-blue);
+  }
+  .footer-notes ol {
+    margin: 4px 0;
+    padding-left: 20px;
+  }
+  .sign-block {
+    text-align: right;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .sign-block .line {
+    border-bottom: 1px solid #333;
+    width: 180px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .sign-block .label {
+    font-size: 12px;
+  }
 
-    @media print {
-      body { background: #fff; padding: 0; }
-      .no-print { display: none !important; }
-      .invoice-page { border: none; box-shadow: none; max-width: 100%; }
+  .no-print {
+    margin-top: 28px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .no-print .btn {
+    padding: 12px 24px;
+    background: var(--invoice-red);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .no-print .btn:hover {
+    opacity: 0.9;
+  }
+  .no-print .back {
+    color: #0b6efd;
+    text-decoration: none;
+  }
+
+  .for-company {
+    color: var(--invoice-red);
+    font-weight: 600;
+    font-size: 14px;
+    text-align: right;
+    border-right: var(--border);
+    border-left: var(--border);
+  }
+
+  @media print {
+    body {
+      background: #fff;
+      padding: 0;
     }
-  </style>
-</head>
-<body>
-  <div class="invoice-page" id="invoiceContent">
-    <!-- Populated by JS from localStorage -->
-    <p id="noDataMsg" style="display:none;">No invoice data found. <a href="invoice-form.html">Create an invoice</a> first.</p>
-  </div>
-  <div class="no-print" id="actionsBar" style="display:none;">
-    <a href="invoice-form.html" class="back">← Back to form</a>
-    <button type="button" class="btn" id="btnPrint">🖨️ Print / Download Invoice</button>
-  </div>
+    .no-print {
+      display: none !important;
+    }
+    .invoice-page {
+      border: none;
+      box-shadow: none;
+      max-width: 100%;
+    }
+  }
+    </style>
+  </head>
+  <body>
+    <div class="invoice-page" id="invoiceContent">
+      <!-- Populated by JS from localStorage -->
+      <p id="noDataMsg" style="display:none;">No invoice data found. <a href="invoice-form.html">Create an invoice</a> first.</p>
+    </div>
+    <div class="no-print" id="actionsBar">
+      <a href="invoice-form.html" class="back">← Back to form</a>
+      <button type="button" class="btn" id="btnPrint">
+        🖨️ Print / Download Invoice
+      </button>
+    </div>
 
   <script>
     (function () {
@@ -103,7 +353,7 @@
           return (upTo999(Math.floor(x / 10000000)) + ' Crore ' + upTo9999999(x % 10000000)).trim();
         }
         const words = upTo999999999(n).replace(/\s+/g, ' ').trim();
-        return words ? 'Rs. ' + words + ' Only' : 'Rs. Zero Only';
+        return words ? 'RS. ' + words + ' Only' : 'RS. Zero Only';
       }
 
       function render(d) {
@@ -144,27 +394,30 @@
         };
 
         let html = '';
+        // Header with company info only
         html += '<header class="invoice-header">';
         html += '<div class="header-company-section">';
         html += '<div class="header-company-top"><div class="header-spacer"></div><h1 class="company-name">RAJASTHAN ROUTE CABS</h1><div class="gstin-top-right"><strong>GSTIN: 08NHSPS2340H1ZN</strong></div></div>';
         html += '<div class="company-details"><p>Head Office: Plot No. 142, Shri Ganesh Nagar – E, Boytawala, Benad Road, Jaipur 302012</p><p>Branch Office: Shop No. 1, Mali Colony Road, 100 Ft Road, Udaipur</p><p>Mobile +91 86194 25193</p></div>';
         html += '</div>';
-        html += '<div class="header-sep"></div>';
-        html += '<div class="header-bottom-section">';
-        html += '<div class="header-customer-col">';
-        html += '<p><span class="label">M/s. </span><strong>' + (d.customerName || '—') + '</strong></p>';
-        html += '<p><span class="label">Address: </span>' + (d.address || '—') + '</p>';
-        html += '<p><span class="label">City: </span>' + (d.city || '—') + ' &nbsp; <span class="label">State: </span>' + (d.state || '—') + '</p>';
-        html += '<p><span class="label">GSTIN No. </span><strong>' + (d.customerGstin || '—') + '</strong></p>';
-        html += '</div>';
-        html += '<div class="header-invoice-col">';
-        html += '<p class="inv-line"><strong>Bill No.: ' + (d.billNo || '—') + '</strong></p>';
-        html += '<p class="inv-line">Bill Date: ' + fmtDate(d.billDate) + '</p>';
-        html += '<p class="inv-line"><span class="label">Vehicle Type: </span>' + (d.vehicleType || '—') + ' &nbsp; <span class="label">Vehicle User: </span>' + (d.vehicleUser || '—') + '</p>';
-        html += '</div>';
-        html += '</div>';
         html += '</header>';
 
+        // Client and Invoice Details Section
+        html += '<div class="details-section">';
+        html += '<div class="details-customer-col">';
+        html += '<p><span class="label">M/s. </span><strong>' + (d.customerName || '—').toUpperCase() + '</strong></p>';
+        html += '<p><span class="label">Address: </span>' + (d.address || '—') + '</p>';
+        html += '<p><span class="label">City: </span>' + (d.city || '—') + ',302004 <span class="label">State: </span>' + (d.state || '—') + '</p>';
+        html += '<p><span class="label">GSTIN No. </span><strong>' + (d.customerGstin || '—') + '</strong></p>';
+        html += '</div>';
+        html += '<div class="details-invoice-col">';
+        html += '<p class="inv-line"><strong>Bill No.: ' + (d.billNo || '—') + '</strong></p>';
+        html += '<p class="inv-line">Bill Date: ' + fmtDate(d.billDate) + '</p>';
+        html += '<p class="inv-line vehicle-label"><span class="label">Vehicle Type: Vehicle User:</span></p>';
+        html += '</div>';
+        html += '</div>';
+
+        // Main table
         html += '<table class="preview-table"><thead><tr>';
         cols.forEach(c => { html += '<th' + (c.numeric ? ' class="num"' : '') + '>' + (c.header || c.key) + '</th>'; });
         html += '</tr></thead><tbody>';
@@ -173,9 +426,13 @@
           cols.forEach(c => {
             let val = row[c.key];
             if (c.computed && c.key === 'totalPayment') {
-              const p = parseFloat(row.packageCost || 0) || 0;
-              const t = parseFloat(row.parkingToll || 0) || 0;
-              val = (p + t).toFixed(0);
+              const numericIndices = cols.map((col, idx) => (col.numeric && !col.computed) ? idx : null).filter(x => x !== null);
+              let sum = 0;
+              numericIndices.forEach(idx => {
+                const colKey = cols[idx].key;
+                sum += parseFloat(row[colKey] || 0) || 0;
+              });
+              val = sum.toFixed(0);
             }
             if (c.key === 'travelDate' && val) val = fmtDate(val);
             html += '<td' + (c.numeric ? ' class="num"' : '') + '>' + (val != null && val !== '' ? String(val) : '—') + '</td>';
@@ -183,29 +440,43 @@
           html += '</tr>';
         });
         const totalColspan = cols.length - 1;
-        const dataCols = cols.filter(c => !c.computed);
-        const totalPaymentCol = cols.findIndex(c => c.key === 'totalPayment');
-        const sum = (d.rows || []).reduce((s, r) => s + (parseFloat(r.totalPayment || (parseFloat(r.packageCost||0)+parseFloat(r.parkingToll||0))) || 0), 0);
+        const sum = (d.rows || []).reduce((s, r) => {
+          const numericIndices = cols.map((col, idx) => (col.numeric && !col.computed) ? idx : null).filter(x => x !== null);
+          let rowSum = 0;
+          numericIndices.forEach(idx => {
+            const colKey = cols[idx].key;
+            rowSum += parseFloat(r[colKey] || 0) || 0;
+          });
+          return s + rowSum;
+        }, 0);
         html += '</tbody><tfoot><tr><td colspan="' + totalColspan + '" style="text-align:right;font-weight:700;">TOTAL</td><td class="num" style="font-weight:700;">' + sum.toFixed(0) + '</td></tr></tfoot></table>';
 
+        // Bank Details and Totals Section
         html += '<div class="two-cols">';
-        html += '<div class="bank-block"><h4>Bank Details</h4><p><strong>Bank Name</strong> HDFC BANK</p><p><strong>Account Name</strong> RAJASTHAN ROUTE CABS</p><p><strong>Account No</strong> 50200106469978</p><p><strong>IFSC Code</strong> HDFC0005717</p><p><strong>Account Type</strong> Current A/C</p><p><strong>Branch Address</strong> Niwaroo Road, Jaipur</p></div>';
-        html += '<div style="flex:1;min-width:260px;">';
+        html += '<div class="bank-details-col">';
+        html += '<div class="bank-block"><h4>Bank Details:</h4><p><strong>Bank Name</strong> HDFC BANK</p><p><strong>Account Name</strong> RAJASTHAN ROUTE CABS</p><p><strong>Account No</strong> 50200106469978 &nbsp;&nbsp;&nbsp;&nbsp; <strong>IFSC Code</strong> HDFC0005717</p><p><strong>Account Type</strong> Current A/C</p><p><strong>Branch Address</strong> Niwaroo Road, Jaipur</p></div>';
         html += '<div class="amount-words"><strong>Invoice Amount in words:</strong> ' + amountInWords(parseFloat(d.grandTotal) || 0) + '</div>';
-        html += '<div class="calc-block">';
-        html += '<div class="row"><span>Toll/Board tax/Parking</span><span>—</span></div>';
-        html += '<div class="row"><span>Driver DA/Night Hold</span><span>—</span></div>';
-        html += '<div class="row"><strong>Taxable Amount</strong><strong>' + (d.taxableAmount != null ? Number(d.taxableAmount).toFixed(0) : '0') + '</strong></div>';
-        html += '<div class="row"><span>CGST @ 9%</span><span>' + (d.cgst > 0 ? Number(d.cgst).toFixed(2) : '—') + '</span></div>';
-        html += '<div class="row"><span>SGST @ 9%</span><span>' + (d.sgst > 0 ? Number(d.sgst).toFixed(2) : '—') + '</span></div>';
-        html += '<div class="row"><span>IGST @ 18%</span><span>' + (d.igst > 0 ? Number(d.igst).toFixed(2) : '—') + '</span></div>';
-        html += '<div class="row"><strong>TOTAL GST</strong><strong>' + (d.totalGst != null ? Number(d.totalGst).toFixed(2) : '0') + '</strong></div>';
-        html += '<div class="row grand"><span>GRAND TOTAL</span><span>' + (d.grandTotal != null ? Number(d.grandTotal).toFixed(2) : '0') + '</span></div>';
-        html += '<div class="for-company">For: Rajasthan Route Cabs</div>';
-        html += '</div></div></div>';
+        html += '</div>';
+        html += '<div class="totals-col">';
+        html += '<table class="calc-table">';
+        html += '<tr><td>Toll/Board tax/Parking</td><td class="num">—</td></tr>';
+        html += '<tr><td>Driver DA/Night Hold</td><td class="num">—</td></tr>';
+        html += '<tr><td><strong>Taxable Amount</strong></td><td class="num"><strong>' + (d.taxableAmount != null ? Number(d.taxableAmount).toFixed(0) : '0') + '</strong></td></tr>';
+        html += '<tr><td>CGST @ 9.00%</td><td class="num">' + (d.cgst > 0 ? Number(d.cgst).toFixed(2) : '—') + '</td></tr>';
+        html += '<tr><td>SGST @ 9.00%</td><td class="num">' + (d.sgst > 0 ? Number(d.sgst).toFixed(2) : '—') + '</td></tr>';
+        html += '<tr><td>IGST @ 18.00%</td><td class="num">' + (d.igst > 0 ? Number(d.igst).toFixed(2) : '—') + '</td></tr>';
+        html += '<tr><td><strong>TOTAL GST</strong></td><td class="num"><strong>' + (d.totalGst != null ? Number(d.totalGst).toFixed(2) : '0') + '</strong></td></tr>';
+        html += '<tr class="empty-row"><td></td><td></td></tr>';
+        html += '<tr class="grand-row"><td><strong>GRAND TOTAL</strong></td><td class="num"><strong>' + (d.grandTotal != null ? Number(d.grandTotal).toFixed(2) : '0') + '</strong></td></tr>';
+        html += '</table>';
+        html += '</div>';
+        html += '</div>';
 
-        html += '<div class="footer-notes"><ol><li>Subject to Udaipur Jurisdiction.</li><li>If payment is not received within 15 days, Interest @ 18% p.a. will be charged.</li><li>E. & O.E</li><li>Please issue the cheque/DD/Pay Order in favor of Rajasthan Route Cabs, Jaipur</li></ol></div>';
+        // Footer Container
+        html += '<div class="footer-container">';
+        html += '<div class="footer-notes"><ol><li>Subject to Udaipur Jurisdiction.</li><li>If payment is not received within 15 days, Interest @ 18% p.a. will be charged.</li><li>E. &amp; O.E</li><li>Please issue the cheque/DD/Pay Order in favor of Rajasthan Route Cabs, Jaipur</li></ol></div>';
         html += '<div class="sign-block"><div class="line"></div><div class="label">Proprietor Signature</div></div>';
+        html += '</div>';
 
         wrap.innerHTML = html;
       }
@@ -222,5 +493,5 @@
       });
     })();
   </script>
-</body>
+  </body>
 </html>
