@@ -129,7 +129,7 @@
 
       // Event + Hotel info
       const eventDiv = document.getElementById("eventHotel");
-      let dateStr = data.eventDate ? new Date(data.eventDate).toLocaleDateString() : "";
+      let dateStr = data.eventDate ? new Date(data.eventDate).toLocaleDateString('en-GB') : "";
       eventDiv.innerHTML = `<b>Event Date:</b> ${dateStr || "-"} &nbsp;&nbsp; | &nbsp;&nbsp; <b>Hotel / Venue:</b> ${data.hotelName || "-"}`;
 
       // Build table headers
